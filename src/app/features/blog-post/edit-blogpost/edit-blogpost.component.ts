@@ -1,10 +1,11 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { BlogPostService } from '../services/blog-post.service';
 import { BlogPost } from '../models/blog-post.model';
 import { CategoryService } from '../../category/services/category.service';
 import { Category } from '../../category/models/category.model';
+import { UpdateBlogPost } from '../models/update-blog-post.model';
 
 @Component({
   selector: 'app-edit-blogpost',
@@ -17,11 +18,17 @@ export class EditBlogpostComponent implements OnInit, OnDestroy{
   categories$?: Observable<Category[]>;
   routeSubscription?: Subscription;
   selectedCategories?: string[];
+  updateBlogPostSubscription?: Subscription;
+  getBlogPostSubscription?: Subscription;
+
 
 
   constructor (private route: ActivatedRoute,
                private blogPostService: BlogPostService,
-               private categoryService: CategoryService){}
+               private categoryService: CategoryService,
+               private router: Router){}
+
+  
   
   
   ngOnInit(): void {
@@ -31,7 +38,7 @@ export class EditBlogpostComponent implements OnInit, OnDestroy{
         this.id= params.get('id');
 
         if(this.id){
-          this.blogPostService.getBlogPostById(this.id).subscribe({
+          this.getBlogPostSubscription= this.blogPostService.getBlogPostById(this.id).subscribe({
             next: (response) => {
               this.model = response;
               this.selectedCategories = response.categories.map (x=>x.id);
@@ -44,11 +51,38 @@ export class EditBlogpostComponent implements OnInit, OnDestroy{
   }
 
   onFormSubmit(): void {
-    console.log(this.model);
-  }
+       if(this.model && this.id){
+        var updateBlogPost: UpdateBlogPost= {
+          author: this.model.author,
+          content: this.model.content,
+          shortDescription: this.model.shortDescription,
+          featuredImageUrl: this.model.featuredImageUrl,
+          isVisible: this.model.isVisible,
+          publishedDate: this.model.publishedDate,
+          title: this.model.title,
+          urlHandle: this.model.urlHandle,
+          categories: this.selectedCategories ?? []
 
-  ngOnDestroy(): void {
-   this.routeSubscription?.unsubscribe();
+        };
+      this.updateBlogPostSubscription = this.blogPostService.updateBlogPost(this.id, updateBlogPost).subscribe({
+          next: (response) =>{
+                 this.router.navigateByUrl('/admin/blogposts');
+          }
+        });
+
+       }
   }
+  ngOnDestroy(): void {
+    
+    this.routeSubscription?.unsubscribe();
+    this.updateBlogPostSubscription?.unsubscribe();
+    this.getBlogPostSubscription?.unsubscribe();
+
+  }
+ 
 
 }
+
+
+
+
